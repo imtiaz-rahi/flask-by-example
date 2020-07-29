@@ -1,18 +1,18 @@
-import functools
 import os
 import re
-import operator
-import time
 from collections import Counter
 
 import nltk
 import requests
+from rq import Queue
+from rq.job import Job
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from flask import Flask, render_template, request
 from flask_sqlalchemy import SQLAlchemy
 from requests.models import Response
 from stop_words import STOPS
+from worker import redis_conn
 
 
 load_dotenv()
@@ -20,20 +20,9 @@ app = Flask(__name__)
 app.config.from_object(os.environ["APP_SETTINGS"])
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+queue = Queue(connection=redis_conn)
 
 from models import Result
-
-
-def timer(func):
-    """Print the runtime of the decorated function"""
-    @functools.wraps(func)
-    def wrapper_timer(*args, **kwargs):
-        start_time = time.perf_counter()
-        value = func(*args, **kwargs)
-        run_time = time.perf_counter() - start_time
-        print(f"{func.__name__!r} finished running in {run_time:.4f} secs")
-        return value
-    return wrapper_timer
 
 
 def process_site_text(rs: Response):
@@ -57,25 +46,30 @@ def process_site_text(rs: Response):
     return results, raw_word_count, non_stop_words_count
 
 
-@timer
-def handle_post():
+def handle_post(url: str):
     """Get site source parsed and store data in DB"""
     errors = []
     try:
-        url = request.form['url']
         rs = requests.get(url)
     except requests.exceptions.RequestException as ex:
         errors.append('Unable to get URL. Make sure it exists.\n' + ex)
+        return {"errors": errors}
 
     results, raw_count, non_stop_count = process_site_text(rs)
     try:
         result_obj = Result(url=url, result_all=raw_count, result_no_stop_words=non_stop_count)
         db.session.add(result_obj)
         db.session.commit()
+        return result_obj.id
     except:
         errors.append('Unable to add item into database.')
+        return {"errors": errors}
 
-    return errors, results
+
+@app.route("/results/<job_key>", methods=["GET"])
+def get_results(job_key: str):
+    job = Job(job_key, connection=redis_conn)
+    return (str(job.result), 200) if job.is_finished else ("Nay!", 202)
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -83,7 +77,12 @@ def index():
     errors = []
     results = {}
     if request.method == 'POST':
-        errors, results = handle_post()
+        url = request.form['url']
+        if not url[:8].startswith(("https://", "http://")):
+            url = "https://" + url
+        job = queue.enqueue_call(func=handle_post, args=(url,), ttl=5000)
+        print(job.get_id())
+        # errors, results = handle_post(url)
     return render_template('index.html', errors=errors, results=results)
 
 
