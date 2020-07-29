@@ -1,6 +1,8 @@
+import functools
 import os
 import re
 import operator
+import time
 from collections import Counter
 
 import nltk
@@ -20,6 +22,18 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 from models import Result
+
+
+def timer(func):
+    """Print the runtime of the decorated function"""
+    @functools.wraps(func)
+    def wrapper_timer(*args, **kwargs):
+        start_time = time.perf_counter()
+        value = func(*args, **kwargs)
+        run_time = time.perf_counter() - start_time
+        print(f"{func.__name__!r} finished running in {run_time:.4f} secs")
+        return value
+    return wrapper_timer
 
 
 def process_site_text(rs: Response):
@@ -43,6 +57,7 @@ def process_site_text(rs: Response):
     return results, raw_word_count, non_stop_words_count
 
 
+@timer
 def handle_post():
     """Get site source parsed and store data in DB"""
     errors = []
