@@ -1,3 +1,4 @@
+import operator
 import os
 import re
 from collections import Counter
@@ -8,7 +9,7 @@ from rq import Queue
 from rq.job import Job
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from requests.models import Response
 from stop_words import STOPS
@@ -69,7 +70,14 @@ def handle_post(url: str):
 @app.route("/results/<job_key>", methods=["GET"])
 def get_results(job_key: str):
     job = Job(job_key, connection=redis_conn)
-    return (str(job.result), 200) if job.is_finished else ("Nay!", 202)
+    if not job.is_finished:
+        return "Nay!", 202
+
+    obj: Result = Result.query.filter_by(id=job.result).first()
+    results = sorted(obj.result_no_stop_words.items(),
+                     key=operator.itemgetter(1),
+                     reverse=True)[:10]
+    return jsonify(results)
 
 
 @app.route('/', methods=['GET', 'POST'])
