@@ -24,5 +24,8 @@ python manage.py db upgrade
 ```
 heroku config --app wordcount-ir-beta
 heroku addons:create heroku-postgresql:hobby-dev --app wordcount-ir-beta
-Use heroku addons:docs heroku-postgresql to view documentation
+heroku run python manage.py db upgrade --app wordcount-ir-beta
 ```
+
+heroku addons:docs heroku-postgresql        # to view documentation
+
