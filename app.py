@@ -15,7 +15,6 @@ from stop_words import STOPS
 
 load_dotenv()
 app = Flask(__name__)
-print(f'{os.environ["APP_SETTINGS"] = }')
 app.config.from_object(os.environ["APP_SETTINGS"])
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -24,12 +23,13 @@ from models import Result
 
 
 def process_site_text(rs: Response):
+    """Process site response (HTML) into raw text and tokenize using nltk """
     results = {}
     if not rs: return results
 
-    nltk.data.path.append('./nltk-data/')
+    # Add custom nltk data download location, if needed
+    # nltk.data.path.append('./nltk-data/')
     raw = BeautifulSoup(rs.text, 'html.parser').get_text()
-    # tokens = nltk.word_tokenize(raw)
     text = nltk.Text(nltk.word_tokenize(raw))
     # remove punctuation, count raw words
     non_punc = re.compile('.*[A-Za-z].*')
@@ -38,21 +38,19 @@ def process_site_text(rs: Response):
     non_stop_words = [w for w in raw_words if w.lower() not in STOPS]
     non_stop_words_count = Counter(non_stop_words)
 
-    results = sorted(non_stop_words_count.items(), key=operator.itemgetter(1), reverse=True)
+    # results = sorted(non_stop_words_count.items(), key=operator.itemgetter(1), reverse=True)
+    results = sorted(non_stop_words_count.items(), key=lambda x: x[1], reverse=True)
     return results, raw_word_count, non_stop_words_count
 
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
+def handle_post():
+    """Get site source parsed and store data in DB"""
     errors = []
-    # results = {}
-    if request.method == 'POST':
-        try:
-            url = request.form['url']
-            rs = requests.get(url)
-            print(rs.text)
-        except requests.exceptions.RequestException as ex:
-            errors.append('Unable to get URL. Make sure it exists.\n' + ex)
+    try:
+        url = request.form['url']
+        rs = requests.get(url)
+    except requests.exceptions.RequestException as ex:
+        errors.append('Unable to get URL. Make sure it exists.\n' + ex)
 
     results, raw_count, non_stop_count = process_site_text(rs)
     try:
@@ -61,6 +59,16 @@ def index():
         db.session.commit()
     except:
         errors.append('Unable to add item into database.')
+
+    return errors, results
+
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    errors = []
+    results = {}
+    if request.method == 'POST':
+        errors, results = handle_post()
     return render_template('index.html', errors=errors, results=results)
 
 

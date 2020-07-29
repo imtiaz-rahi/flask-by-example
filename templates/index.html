@@ -16,19 +16,46 @@
 </head>
 <body>
     <div class="container">
-        <h1>Wordcount 3000</h1>
-        <form role="form" method="post" target="/">
+      <div class="row">
+        <div class="col-sm-5 col-sm-offset-1">
+          <h1>Wordcount 3000</h1>
+          <form role="form" method="POST" action="/">
             <div class="form-group">
-                <input type="text" name="url" class="form-control" id="url-box" placeholder="Enter URL ..." style="max-width: 300px" autofocus required>
+              <input type="text" name="url" class="form-control" id="url-box" autocomplete="on" placeholder="Enter URL..." style="max-width: 400px;">
             </div>
-            <button type="submit" class="btn btn-default">Submit</button>
-        </form>
-        <br />
-        {% for error in errors %}
-            <h4>{{error}}</h4>
-        {% endfor %}
+            <button type="submit" class="btn btn-primary">Submit</button>
+          </form>
+          <br>
+          {% for error in errors %}
+            <h4>{{ error }}</h4>
+          {% endfor %}
+          <br>
+        </div>
+        <div class="col-sm-5 col-sm-offset-1">
+          {% if results %}
+            <h2>Frequencies</h2>
+            <br>
+            <div id="results">
+              <table class="table table-striped" style="max-width: 300px;">
+                <thead>
+                  <tr>
+                    <th>Word</th>
+                    <th>Count</th>
+                  </tr>
+                </thead>
+                {% for result in results%}
+                  <tr>
+                    <td>{{ result[0] }}</td>
+                    <td>{{ result[1] }}</td>
+                  </tr>
+                {% endfor %}
+              </table>
+            </div>
+          {% endif %}
+        </div>
+      </div>
     </div>
-
+    <br><br>
     <!-- https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js" crossorigin="anonymous"
             integrity="ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2"></script>
