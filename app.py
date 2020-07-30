@@ -54,7 +54,7 @@ def handle_post(url: str):
     try:
         rs = requests.get(url)
     except requests.exceptions.RequestException as ex:
-        errors.append('Unable to get URL. Make sure it exists.\n' + ex)
+        errors.append('Unable to get URL. Make sure it exists. ' + str(ex))
         return {"errors": errors}
 
     results, raw_count, non_stop_count = process_site_text(rs)
