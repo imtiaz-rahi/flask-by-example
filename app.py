@@ -3,6 +3,7 @@ import os
 import re
 from collections import Counter
 
+import json
 import nltk
 import requests
 from rq import Queue
@@ -82,16 +83,18 @@ def get_results(job_key: str):
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    errors = []
-    results = {}
-    if request.method == 'POST':
-        url = request.form['url']
-        if not url[:8].startswith(("https://", "http://")):
-            url = "https://" + url
-        job = queue.enqueue_call(func=handle_post, args=(url,), ttl=5000)
-        print(job.get_id())
-        # errors, results = handle_post(url)
-    return render_template('index.html', errors=errors, results=results)
+    return render_template('index.html')
+
+
+@app.route('/start', methods=['POST'])
+def get_counts():
+    data = json.loads(request.data.decode())
+    url = data['url']
+    if not url[:8].startswith(("https://", "http://")):
+        url = "https://" + url
+    job = queue.enqueue_call(func=handle_post, args=(url,), ttl=5000)
+    print(job.get_id())
+    return job.get_id()
 
 
 @app.route('/<name>')
