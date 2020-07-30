@@ -29,3 +29,7 @@ heroku run python manage.py db upgrade --app wordcount-ir-beta
 
 heroku addons:docs heroku-postgresql        # to view documentation
 
+Setup redis on heroku
+```
+heroku addons:create redistogo:nano --app wordcount-ir-beta
+```
