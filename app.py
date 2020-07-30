@@ -10,7 +10,7 @@ from rq import Queue
 from rq.job import Job
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, abort
 from flask_sqlalchemy import SQLAlchemy
 from requests.models import Response
 from stop_words import STOPS
@@ -73,6 +73,11 @@ def get_results(job_key: str):
     job = Job(job_key, connection=redis_conn)
     if not job.is_finished:
         return "Nay!", 202
+
+    if isinstance(job.result, dict):
+        print(job.result)
+        # Should be 598/599 but werkzeug does not have them implemented
+        return abort(504)
 
     obj: Result = Result.query.filter_by(id=job.result).first()
     results = sorted(obj.result_no_stop_words.items(),
