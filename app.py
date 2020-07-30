@@ -77,6 +77,7 @@ def get_results(job_key: str):
     if isinstance(job.result, dict):
         print(job.result)
         # Should be 598/599 but werkzeug does not have them implemented
+        # https://www.restapitutorial.com/httpstatuscodes.html
         return abort(504)
 
     obj: Result = Result.query.filter_by(id=job.result).first()

@@ -2,7 +2,7 @@
   'use strict';
 
   angular.module('WordcountApp', [])
-    .controller('WordcountController', ['$scope', '$log', '$http', '$timeout', function ($scope, $log, $http, $timeout) {
+    .controller('WordcountController', ['$scope', '$log', '$http', '$timeout', function($scope, $log, $http, $timeout) {
 
       $scope.isArray = angular.isArray;
       $scope.submitButtonText = "Submit";
@@ -57,7 +57,37 @@
 
         poller();
       }
-    }
-    ]);
+    }])
+
+    .directive('wordCountChart', ['$parse', function($parse) {
+      return {
+        restrict: 'E',
+        replace: true,
+        template: '<div id="chart"></div>',
+        link: function(scope) {
+
+          scope.$watch('wordcount', function() {
+
+            d3.select('#chart').selectAll('*').remove();
+            var data = scope.wordcount;
+
+            for (var word in data) {
+              //console.log(word + " :: " + word[0] + " :: " + data[word]);
+              var key = data[word][0];
+              var val = data[word][1];
+
+              d3.select('#chart').append('div')
+                .selectAll('div')
+                .data(word[0])
+                .enter().append('div')
+                  .style('width', _ => (val * 3) + 'px')
+                  //.style('width', function() { return (val * 3) + 'px'; })
+                  .text(function(d) { return key; })
+                ;
+            }
+          }, true);
+        }
+      };
+    }]);
 
 }());
